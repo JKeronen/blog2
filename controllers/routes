@@ -1,0 +1,43 @@
+const blogRouter = require('express').Router()
+const { isNull } = require('lodash')
+const Blog = require('../models/postaus')
+
+
+blogRouter.get('/', (request, response, next) => {
+  Blog
+    .find({})
+    .then(blogs => {
+      response.json(blogs)
+    })
+    .catch(error => next(error)) 
+})
+
+blogRouter.post('/', (request, response, next) => {
+  const blog = new Blog(request.body)
+  // onko arvoa annettu?
+  if(isNull(blog.likes)) {blog.likes = 0}
+
+  blog
+    .save()
+    .then(result => {
+      response.status(201).json(result)
+    })
+    .catch(error => next(error)) 
+})
+
+blogRouter.put('/:id', async (request, response, next) => {
+  const blog = {
+    title:request.body.title,
+    author:request.body.author,
+    url:request.body.url,
+    likes:request.body.likes
+  }
+  await Blog.findByIdAndUpdate(request.body.id, blog)
+  response.status(200).end()
+})
+blogRouter.delete('/:id', async (request, response, next) => {
+  await Blog.findByIdAndRemove(request.params.id)
+  response.status(204).end()
+})
+
+module.exports = blogRouter
