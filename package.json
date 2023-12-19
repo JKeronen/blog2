@@ -11,10 +11,12 @@
   "author": "Jan Keronen",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "lodash": "^4.17.21",
     "mongoose": "^7.6.5",
+    "mongoose-unique-validator": "^4.0.0",
     "punycode": "^2.3.1"
   },
   "devDependencies": {
