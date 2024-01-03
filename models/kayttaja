@@ -26,10 +26,8 @@ userSchema.set('toJSON', {
     delete returnedObject.__v
     // the passwordHash should not be revealed
     delete returnedObject.passwordHash
-    delete returnedObject.blogs
   }
 })
 
-const User = mongoose.model('User', userSchema)
 
-module.exports = User
+module.exports =  mongoose.model('User', userSchema)

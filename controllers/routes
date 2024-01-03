@@ -1,28 +1,38 @@
 const blogRouter = require('express').Router()
-const { isNull } = require('lodash')
 const Blog = require('../models/postaus')
+const User = require('../models/kayttaja')
 
 
-blogRouter.get('/', (request, response, next) => {
-  Blog
-    .find({})
-    .then(blogs => {
-      response.json(blogs)
-    })
-    .catch(error => next(error)) 
+blogRouter.get('/', async (request, response, next) => {
+  const blogs = await Blog
+    .find({}).populate('user', {username: 1, name: 1})
+    response.json(blogs) 
 })
 
-blogRouter.post('/', (request, response, next) => {
-  const blog = new Blog(request.body)
-  // onko arvoa annettu?
-  if(isNull(blog.likes)) {blog.likes = 0}
+blogRouter.post('/', async (request, response, next) => {
+  const body = request.body
 
-  blog
-    .save()
-    .then(result => {
-      response.status(201).json(result)
-    })
-    .catch(error => next(error)) 
+  // etsitään käyttäjä id:n avulla
+  const user = await User.findById(body.userId)
+
+  const blog = new Blog({
+    title: body.title,
+    author: body.author,
+    user: user._id,
+    url: body.url,
+    likes: body.likes === undefined ? 0 : body.likes,
+    
+  })
+  // tallennetaan blogi
+  const saveNewBlog = await blog.save()
+  
+  // lisätään blogin id käyttäjälle
+  user.blogs = user.blogs.concat(saveNewBlog._id)
+  
+  // tallennetaan käyttäjätiedot
+  await user.save()
+  // palatetaan tallennettu blogi
+  response.json(saveNewBlog)
 })
 
 blogRouter.put('/:id', async (request, response, next) => {
