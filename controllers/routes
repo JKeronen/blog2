@@ -2,6 +2,13 @@ const blogRouter = require('express').Router()
 const Blog = require('../models/postaus')
 const User = require('../models/kayttaja')
 
+const getTokenFrom = request => {
+  const authorization = request.get('authorization')
+  if (authorization && authorization.startsWith('Bearer ')) {
+    return authorization.replace('Bearer ', '')
+  }
+  return null
+}
 
 blogRouter.get('/', async (request, response, next) => {
   const blogs = await Blog
@@ -12,8 +19,14 @@ blogRouter.get('/', async (request, response, next) => {
 blogRouter.post('/', async (request, response, next) => {
   const body = request.body
 
-  // etsitään käyttäjä id:n avulla
-  const user = await User.findById(body.userId)
+  const decodedToken = jwt.verify(getTokenFrom(request), process.env.SECRET)
+  if (!decodedToken.id) {
+    return response.status(401).json({ error: 'token invalid' })
+  }
+  // etsitään käyttäjä tokenin id:n avulla
+  const user = await User.findById(decodedToken.id)
+  
+ 
 
   const blog = new Blog({
     title: body.title,
