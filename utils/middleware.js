@@ -4,7 +4,14 @@ const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
   logger.info('Path:  ', request.path)
   logger.info('Body:  ', request.body)
-  logger.info('---')
+  logger.info('Authorization:  ', request.headers.authorization)
+  next()
+}
+const tokenExtractor = (request, response, next) => {
+  const authorization = request.headers.authorization
+  if (authorization && authorization.startsWith('bearer ')) {
+    request.token = authorization.replace('bearer ', '')
+  } 
   next()
 }
 
@@ -21,13 +28,17 @@ const errorHandler = (error, request, response, next) => {
     return response.status(400).json({ error: error.message })
   } else if (error.name ===  'JsonWebTokenError') {
     return response.status(400).json({ error: 'token missing or invalid' })
-  }
-
+  } else if (error.name === 'TokenExpiredError') {
+    return response.status(401).json({
+      error: 'token expired'
+    })
+  } 
   next(error)
 }
 
 module.exports = {
   requestLogger,
   unknownEndpoint,
-  errorHandler
+  errorHandler,
+  tokenExtractor
 }
