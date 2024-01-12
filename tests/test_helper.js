@@ -1,6 +1,17 @@
 const Blog = require('../models/postaus')
 const User = require('../models/kayttaja')
 
+const defaultUser = [{
+  username: "mpoppane", 
+  name: "Maija Poppanen", 
+  password: "12345678"
+},
+{
+  username: "staalasm", 
+  name: "Seppo Taalasmaa", 
+  password: "87654321"
+}]
+
 const initialBlogs = [
   {
     title: 'HTML is easy',

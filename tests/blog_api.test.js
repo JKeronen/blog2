@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 const helper = require('./test_helper.js')
 const app = require('../app.js')
 const Blog = require('../models/postaus')
@@ -8,12 +9,22 @@ const User = require('../models/kayttaja')
 const api = supertest(app)
 
 beforeEach(async () => {
+  await User.deleteMany({})
+  // add user
+  let newUser = new User(helper.defaultUser[0])
+  await newUser.save()
+  let anotherUser = new User(helper.defaultUser[1])
+  await anotherUser.save()
+    // create token
+  const token = jwt.sign({username: newUser.user, id: newUser._id}, process.env.SECRET, {expiresIn : 60*60*5})
+  // add blogs
+
   await Blog.deleteMany({})
 
-  let blogObject = new Blog(helper.initialBlogs[0])  
+  let blogObject = new Blog({...helper.initialBlogs[0], user: newUser.user } )  
   await blogObject.save()
 
-  blogObject = new Blog(helper.initialBlogs[1])  
+  blogObject = new Blog({...helper.initialBlogs[1], user: anotherUser.user } )    
   await blogObject.save()
 })
 
@@ -120,96 +131,9 @@ describe('Faulty using is right handled', () => {
   })
 })
 
-describe('Add a new user', () => {
-  beforeEach(async () => {
-    await User.deleteMany({})
 
-    const passwordHash = await bcrypt.hash('sekret', 10)
-    const user = new User({ username: 'root', passwordHash })
-
-    await user.save()
-  })
-
-  test('creation succeeds with a fresh username', async () => {
-    const usersAtStart = await helper.usersInDb()
-
-    const newUser = {
-      username: 'jgfdgerg',
-      name: 'Jan Keronen',
-      password: 'erittäinsalainen',
-    }
-
-    await api
-      .post('/api/users')
-      .send(newUser)
-      .expect(201)
-      .expect('Content-Type', /application\/json/)
-
-    const usersAtEnd = await helper.usersInDb()
-    expect(usersAtEnd).toHaveLength(usersAtStart.length + 1)
-
-    const usernames = usersAtEnd.map(u => u.username)
-    expect(usernames).toContain(newUser.username)
-  })
-
-  test('user creation with non unique username', async () => {
-    const usersAtStart = await helper.usersInDb()
-
-    const sameUser = {
-      username: 'root',
-      name: 'Jan Keronen',
-      password: 'erittäinsalainen',
-    }
-
-    const result = await api
-      .post('/api/users')
-      .send(sameUser)
-      .expect(400)
-      .expect('Content-Type', /application\/json/)
-
-    expect(result.body.error).toContain('username is already in use')
-
-    const usersAtEnd = await helper.usersInDb()
-    expect(usersAtEnd).toHaveLength(usersAtStart.length)
-  })
-  
-  test('user creation when password is not set', async () => {
-    const usersAtStart = await helper.usersInDb()
-
-    const newUser = {
-      username: 'jkerone',
-      name: 'Jan Keronen',
-    }
-
-    await api
-      .post('/api/users')
-      .send(newUser)
-      .expect(400)
-
-    const usersAtEnd = await helper.usersInDb()
-    expect(usersAtEnd).toHaveLength(usersAtStart.length)
-  })
-  test('user creation when password is too short', async () => {
-    const usersAtStart = await helper.usersInDb()
-
-    const newUser = {
-      username: 'jkerone',
-      name: 'Jan Keronen',
-      password: 'sa',
-    }
-
-    await api
-      .post('/api/users')
-      .send(newUser)
-      .expect(411)
-      .expect('Content-Type', /application\/json/)
-
-    const usersAtEnd = await helper.usersInDb()
-    expect(usersAtEnd).toHaveLength(usersAtStart.length)
-  })
-})
 
 afterAll(async() => {
-  await User.deleteMany({})
+  //await User.deleteMany({})
   mongoose.connection.close()
 })

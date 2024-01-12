@@ -1,4 +1,6 @@
 const logger = require('./logger')
+const User = require('../models/kayttaja')
+const jwt = require('jsonwebtoken')
 // Itse tehdyt middlewaret
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -12,6 +14,11 @@ const tokenExtractor = (request, response, next) => {
   if (authorization && authorization.startsWith('bearer ')) {
     request.token = authorization.replace('bearer ', '')
   } 
+  next()
+}
+const userExtractor = (request, response, next) => {
+  const userIdentity = jwt.verify(request.token, process.env.SECRET)
+  request.user = User.findById(userIdentity.id)
   next()
 }
 
@@ -40,5 +47,6 @@ module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
-  tokenExtractor
+  tokenExtractor,
+  userExtractor
 }
