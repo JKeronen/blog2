@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken')
 blogRouter.get('/', async (request, response) => {
   const blogs = await Blog
     .find({}).populate('user', {username: 1, name: 1})
-    response.json(blogs) 
+  response.status(200).json(blogs) 
 })
 
 blogRouter.post('/', async (request, response) => {
@@ -19,37 +19,40 @@ blogRouter.post('/', async (request, response) => {
   }
   // etsitään käyttäjä tokenin id:n avulla
   const user = await User.findById(decodedToken.id)
-  
- 
-
   const blog = new Blog({
     title: body.title,
     author: body.author,
     user: user._id,
     url: body.url,
-    likes: body.likes === undefined ? 0 : body.likes,
-    
+    likes: body.likes === undefined ? 0 : body.likes, 
   })
   // tallennetaan blogi
   const saveNewBlog = await blog.save()
-  
   // lisätään blogin id käyttäjälle
   user.blogs = user.blogs.concat(saveNewBlog._id)
-  
   // tallennetaan käyttäjätiedot
   await user.save()
   // palatetaan tallennettu blogi
-  response.json(saveNewBlog)
+  response.status(201).json(saveNewBlog)
 })
 
 blogRouter.put('/:id', async (request, response) => {
-  const blog = {
+  const blogToUpdate = {
     title:request.body.title,
     author:request.body.author,
     url:request.body.url,
     likes:request.body.likes
   }
-  await Blog.findByIdAndUpdate(request.body.id, blog)
+  const user = await request.user
+  if (!user) {
+    return response.status(401).json({ error: 'token invalid' })
+  }
+  const blog = await Blog.findById(request.params.id)
+  if(blog) {
+    if(user.id.toString() === blog.user.toString()) {
+      await Blog.findByIdAndUpdate(request.body.id, blogToUpdate)
+    }
+  }
   response.status(200).end()
 })
 blogRouter.delete('/:id', async (request, response) => {
@@ -58,7 +61,6 @@ blogRouter.delete('/:id', async (request, response) => {
     return response.status(401).json({ error: 'token invalid' })
   }
   const blog = await Blog.findById(request.params.id)
-  console.log(blog)
   if(blog) {
     if(user.id.toString() === blog.user.toString()) {
       await Blog.findByIdAndRemove(blog._id)
@@ -66,9 +68,7 @@ blogRouter.delete('/:id', async (request, response) => {
       return response.status(204).end()
     } 
   }
-    response.status(406).json({ error: 'blog not found' })
-  
-  
+  response.status(406).json({ error: 'blog not found' })
 })
 
 module.exports = blogRouter

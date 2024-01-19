@@ -7,7 +7,7 @@ const defaultUser = [{
   password: "12345678"
 },
 {
-  username: "staalasm", 
+  username: "mpoppane", 
   name: "Seppo Taalasmaa", 
   password: "87654321"
 }]
@@ -45,5 +45,5 @@ const usersInDb = async () => {
 }
 
 module.exports = {
-  initialBlogs, nonExistingId, blogsInDb, usersInDb
+  initialBlogs, nonExistingId, blogsInDb, usersInDb, defaultUser
 }
